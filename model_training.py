@@ -1,5 +1,8 @@
+import io
+import os
+
+import boto3
 import pandas as pd
-import tensorflow as tf
 import tensorflow_probability as tfp
 
 
@@ -8,24 +11,29 @@ from meridian.data import load
 from meridian.model import model
 from meridian.model import spec
 from meridian.model import prior_distribution
-from meridian.analysis import visualizer
-from psutil import virtual_memory
+from meridian.analysis import visualizer, summarizer, optimizer
 
-from app.celery_tasks.celery import celery
+if __name__ == '__main__':
 
+    s3_file_path = os.getenv('S3_FILE_PATH')
+    print(f'{s3_file_path=}')
 
-@celery.task(timeout=3600)
-def training(
-    raw_data: dict
-):
+    s3_filename = '1747297675.641256_geo_all_channels (1).csv'
 
-    df = pd.DataFrame(raw_data)
+    session = boto3.session.Session(
+        aws_access_key_id='YCAJEijNceD5AzHqkfDRopjcJ',
+        aws_secret_access_key='YCOD_LupG-ynCGilC49OFkJNAtePVayxh1YkoTvI',
+        region_name='ru-central1'
+    )
+    s3 = session.client(
+        service_name='s3',
+        endpoint_url='https://storage.yandexcloud.net'
+    )
 
-    # check if GPU is available
-    ram_gb = virtual_memory().total / 1e9
-    print('Your runtime has {:.1f} gigabytes of available RAM\n'.format(ram_gb))
-    print("Num GPUs Available: ", len(tf.config.experimental.list_physical_devices('GPU')))
-    print("Num CPUs Available: ", len(tf.config.experimental.list_physical_devices('CPU')))
+    obj = s3.get_object(Bucket='google-meridian', Key=s3_filename)
+    obj_data = obj.get('Body').read()
+    df = pd.read_csv(io.BytesIO(obj_data))
+    print(df)
 
     coord_to_columns = load.CoordToColumns(
         time='time',
@@ -51,7 +59,6 @@ def training(
         organic_media=['Organic_channel0_impression'],
         non_media_treatments=['Promo'],
     )
-    print(f'{coord_to_columns}')
 
     correct_media_to_channel = {
         'Channel0_impression': 'Channel_0',
@@ -76,7 +83,6 @@ def training(
         media_spend_to_channel=correct_media_spend_to_channel,
     )
     data = loader.load()
-    print(f'{data.controls}')
 
     roi_mu = 0.2     # Mu for ROI prior for each media channel.
     roi_sigma = 0.9  # Sigma for ROI prior for each media channel.
@@ -89,11 +95,29 @@ def training(
     print(f'{mmm=}')
 
     mmm.sample_prior(200)
-    print(f'BLOCK AFTER sample_prior(300)')
     mmm.sample_posterior(n_chains=2, n_adapt=100, n_burnin=100, n_keep=100, seed=1)
     print('END', 50 * '-----------')
 
     media_summary = visualizer.MediaSummary(mmm)
-    r = media_summary.summary_table()
-    print(r)
-    print(type(r))
+    result_data = media_summary.summary_table()
+    print(result_data)
+
+    csv_buffer = io.StringIO()
+    result_data.to_csv(csv_buffer, index=False, header=True)
+    s3.put_object(Body=csv_buffer.getvalue(), Bucket='google-meridian', Key=f'RESULT_{s3_filename}')
+
+    print('save to s3')
+
+    mmm_summarizer = summarizer.Summarizer(mmm)
+    filepath = 'app/'
+    start_date = '2021-01-25'
+    end_date = '2024-01-15'
+    mmm_summarizer.output_model_results_summary('summary_output.html', filepath, start_date, end_date)
+
+    print('отчет готов')
+
+    budget_optimizer = optimizer.BudgetOptimizer(mmm)
+    optimization_results = budget_optimizer.optimize()
+    filepath = 'app/'
+    optimization_results.output_optimization_summary('optimization_output.html', filepath)
+    print('отчет по оптимизации бюджета готов')

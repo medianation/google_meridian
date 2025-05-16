@@ -1,0 +1,15 @@
+name: google-meridian
+desc: google-meridian
+cmd: python3 app/model_training.py
+env:
+  python: auto
+cloud-instance-types:
+  - g2.1
+environment_variables:
+  S3_FILE_PATH: "blablabla"
+requirements:
+  packages:
+    - tensorflow==2.0.1
+    - tensorflow-probability==0.20.0
+    - pandas
+    - boto3
