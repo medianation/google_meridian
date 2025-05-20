@@ -1,5 +1,6 @@
 import argparse
 import io
+import os
 
 import boto3
 import pandas as pd
@@ -13,6 +14,8 @@ from meridian.model import spec
 from meridian.model import prior_distribution
 from meridian.analysis import visualizer, summarizer, optimizer
 
+from config import AWS_ACCESS_KEY_ID, AWS_SECRET_ACCESS_KEY
+
 if __name__ == '__main__':
     parser = argparse.ArgumentParser(description='Обработка файла')
     parser.add_argument('--path', type=str, required=True, help='Путь к файлу CSV')
@@ -23,8 +26,8 @@ if __name__ == '__main__':
     # s3_filename = '1747297675.641256_geo_all_channels (1).csv'
 
     session = boto3.session.Session(
-        aws_access_key_id='YCAJEijNceD5AzHqkfDRopjcJ',
-        aws_secret_access_key='YCOD_LupG-ynCGilC49OFkJNAtePVayxh1YkoTvI',
+        aws_access_key_id=AWS_ACCESS_KEY_ID,
+        aws_secret_access_key=AWS_SECRET_ACCESS_KEY,
         region_name='ru-central1'
     )
     s3 = session.client(
@@ -107,19 +110,35 @@ if __name__ == '__main__':
     csv_buffer = io.StringIO()
     result_data.to_csv(csv_buffer, index=False, header=True)
     s3.put_object(Body=csv_buffer.getvalue(), Bucket='google-meridian', Key=f'RESULT_{s3_filename}')
-
     print('save to s3')
 
+    local_report_path = 'summary_output.html'
     mmm_summarizer = summarizer.Summarizer(mmm)
     filepath = 'app/'
     start_date = '2021-01-25'
     end_date = '2024-01-15'
-    mmm_summarizer.output_model_results_summary('summary_output.html', filepath, start_date, end_date)
+    mmm_summarizer.output_model_results_summary(local_report_path, filepath, start_date, end_date)
 
-    print('отчет готов')
+    s3.upload_file(
+        Filename=local_report_path,
+        Bucket='google-meridian',
+        Key=f'{s3_filename}_summary_output.html'
+    )
+    print('основной отчет готов и сохранен')
 
+    local_report_budget_path = 'optimization_output.html'
     budget_optimizer = optimizer.BudgetOptimizer(mmm)
     optimization_results = budget_optimizer.optimize()
     filepath = 'app/'
-    optimization_results.output_optimization_summary('optimization_output.html', filepath)
+    optimization_results.output_optimization_summary(local_report_budget_path, filepath)
     print('отчет по оптимизации бюджета готов')
+
+    s3.upload_file(
+        Filename=local_report_path,
+        Bucket='google-meridian',
+        Key=f'{s3_filename}_summary_output.html'
+    )
+    print('отчет по бюджету готов и сохранен')
+
+    os.remove(local_report_path)
+    os.remove(local_report_budget_path)
