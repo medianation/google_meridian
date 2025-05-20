@@ -1,5 +1,5 @@
+import argparse
 import io
-import os
 
 import boto3
 import pandas as pd
@@ -14,11 +14,13 @@ from meridian.model import prior_distribution
 from meridian.analysis import visualizer, summarizer, optimizer
 
 if __name__ == '__main__':
+    parser = argparse.ArgumentParser(description='Обработка файла')
+    parser.add_argument('--path', type=str, required=True, help='Путь к файлу CSV')
+    args = parser.parse_args()
+    s3_filename = args.path
+    print("Путь к файлу:", args.path)
 
-    s3_file_path = os.getenv('S3_FILE_PATH')
-    print(f'{s3_file_path=}')
-
-    s3_filename = '1747297675.641256_geo_all_channels (1).csv'
+    # s3_filename = '1747297675.641256_geo_all_channels (1).csv'
 
     session = boto3.session.Session(
         aws_access_key_id='YCAJEijNceD5AzHqkfDRopjcJ',
