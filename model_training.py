@@ -1,6 +1,7 @@
 import argparse
 import io
 import os
+import time
 
 import boto3
 import pandas as pd
@@ -22,7 +23,8 @@ if __name__ == '__main__':
     args = parser.parse_args()
     s3_filename = args.path
     print("Путь к файлу:", args.path)
-
+    AWS_ACCESS_KEY_ID = 'YCAJEijNceD5AzHqkfDRopjcJ'
+    AWS_SECRET_ACCESS_KEY = 'YCOD_LupG-ynCGilC49OFkJNAtePVayxh1YkoTvI'
     # s3_filename = '1747297675.641256_geo_all_channels (1).csv'
 
     session = boto3.session.Session(
@@ -118,11 +120,12 @@ if __name__ == '__main__':
     start_date = '2021-01-25'
     end_date = '2024-01-15'
     mmm_summarizer.output_model_results_summary(local_report_path, filepath, start_date, end_date)
+    time.sleep(10)
 
     s3.upload_file(
-        Filename=local_report_path,
+        Filename=f'{filepath}{local_report_path}',
         Bucket='google-meridian',
-        Key=f'{s3_filename}_summary_output.html'
+        Key=f'{s3_filename}_{local_report_path}'
     )
     print('основной отчет готов и сохранен')
 
@@ -131,14 +134,14 @@ if __name__ == '__main__':
     optimization_results = budget_optimizer.optimize()
     filepath = 'app/'
     optimization_results.output_optimization_summary(local_report_budget_path, filepath)
-    print('отчет по оптимизации бюджета готов')
+    time.sleep(10)
 
     s3.upload_file(
-        Filename=local_report_path,
+        Filename=f'{filepath}{local_report_budget_path}',
         Bucket='google-meridian',
-        Key=f'{s3_filename}_summary_output.html'
+        Key=f'{s3_filename}_{local_report_budget_path}'
     )
     print('отчет по бюджету готов и сохранен')
 
-    os.remove(local_report_path)
-    os.remove(local_report_budget_path)
+    os.remove(f'{filepath}{local_report_path}')
+    os.remove(f'{filepath}{local_report_budget_path}')
