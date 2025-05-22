@@ -23,9 +23,6 @@ if __name__ == '__main__':
     args = parser.parse_args()
     s3_filename = args.path
     print("Путь к файлу:", args.path)
-    AWS_ACCESS_KEY_ID = 'YCAJEijNceD5AzHqkfDRopjcJ'
-    AWS_SECRET_ACCESS_KEY = 'YCOD_LupG-ynCGilC49OFkJNAtePVayxh1YkoTvI'
-    # s3_filename = '1747297675.641256_geo_all_channels (1).csv'
 
     session = boto3.session.Session(
         aws_access_key_id=AWS_ACCESS_KEY_ID,
@@ -120,7 +117,7 @@ if __name__ == '__main__':
     start_date = '2021-01-25'
     end_date = '2024-01-15'
     mmm_summarizer.output_model_results_summary(local_report_path, filepath, start_date, end_date)
-    time.sleep(10)
+    time.sleep(3)
 
     s3.upload_file(
         Filename=f'{filepath}{local_report_path}',
@@ -134,7 +131,7 @@ if __name__ == '__main__':
     optimization_results = budget_optimizer.optimize()
     filepath = 'app/'
     optimization_results.output_optimization_summary(local_report_budget_path, filepath)
-    time.sleep(10)
+    time.sleep(3)
 
     s3.upload_file(
         Filename=f'{filepath}{local_report_budget_path}',

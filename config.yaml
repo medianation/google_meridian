@@ -1,15 +1,10 @@
 name: google-meridian
 desc: google-meridian
-cmd: python3 app/model_training.py
+cmd: |
+  git clone https://github.com/medianation/google_meridian.git /tmp/repo && 
+  pip install google-meridian[colab,and-cuda] boto3 &&
+  python3 /tmp/repo/model_training.py --path="1747297675.641256_geo_all_channels (1).csv"
 env:
-  python: auto
+  image: nvidia/cuda:12.2-runtime
 cloud-instance-types:
   - g2.1
-environment_variables:
-  S3_FILE_PATH: "blablabla"
-requirements:
-  packages:
-    - tensorflow==2.0.1
-    - tensorflow-probability==0.20.0
-    - pandas
-    - boto3
