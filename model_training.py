@@ -23,9 +23,6 @@ if __name__ == '__main__':
     args = parser.parse_args()
     s3_filename = args.path
     print("Путь к файлу:", args.path)
-    AWS_ACCESS_KEY_ID = os.getenv('AWS_ACCESS_KEY_ID')
-    AWS_SECRET_ACCESS_KEY = os.getenv('AWS_SECRET_ACCESS_KEY')
-    # s3_filename = '1747297675.641256_geo_all_channels (1).csv'
 
     session = boto3.session.Session(
         aws_access_key_id=AWS_ACCESS_KEY_ID,
